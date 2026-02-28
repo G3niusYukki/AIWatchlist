@@ -1,0 +1,78 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-watchlist"
+version = "1.0.0"
+description = "Track leading indicators for AI companies to identify investment opportunities"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "G3niusYukki"}
+]
+maintainers = [
+    {name = "G3niusYukki"}
+]
+keywords = ["ai", "investment", "watchlist", "stocks", "indicators", "finance"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "aiohttp>=3.9.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.0.0",
+]
+
+[project.scripts]
+ai-watchlist = "ai_watchlist.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/G3niusYukki/AIWatchlist"
+Documentation = "https://github.com/G3niusYukki/AIWatchlist#readme"
+Repository = "https://github.com/G3niusYukki/AIWatchlist.git"
+Issues = "https://github.com/G3niusYukki/AIWatchlist/issues"
+Changelog = "https://github.com/G3niusYukki/AIWatchlist/blob/main/CHANGELOG.md"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ai_watchlist*"]
+
+[tool.black]
+line-length = 88
+target-version = ["py39", "py310", "py311", "py312"]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
