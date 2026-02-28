@@ -67,6 +67,7 @@ venv.bak/
 *~
 
 # Data files
+data/
 ai_watchlist/data/*.json
 ai_watchlist/data/*.csv
 ai_watchlist/data/historical/*.json

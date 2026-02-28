@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ai-watchlist"
-version = "1.0.0"
+version = "2.0.0"
 description = "Track leading indicators for AI companies to identify investment opportunities"
 readme = "README.md"
 license = {text = "MIT"}
@@ -14,10 +14,12 @@ authors = [
 maintainers = [
     {name = "G3niusYukki"}
 ]
-keywords = ["ai", "investment", "watchlist", "stocks", "indicators", "finance"]
+keywords = ["ai", "investment", "watchlist", "stocks", "indicators", "finance", "dashboard", "backtesting"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
+    "Environment :: Web Environment",
+    "Framework :: FastAPI",
     "Intended Audience :: Financial and Insurance Industry",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
@@ -29,11 +31,16 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Topic :: Office/Business :: Financial :: Investment",
     "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
     "Typing :: Typed",
 ]
 requires-python = ">=3.9"
 dependencies = [
     "aiohttp>=3.9.0",
+    "yfinance>=0.2.0",
+    "fastapi>=0.100.0",
+    "uvicorn>=0.23.0",
+    "jinja2>=3.1.0",
 ]
 
 [project.optional-dependencies]

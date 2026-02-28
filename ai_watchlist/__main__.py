@@ -28,6 +28,11 @@ Examples:
   python -m ai_watchlist history NVDA               # Show historical data
   python -m ai_watchlist list                       # List all tracked companies
   python -m ai_watchlist export --format json       # Export results
+  python -m ai_watchlist dashboard                  # Launch web dashboard
+  python -m ai_watchlist backtest NVDA --weeks 12   # Run backtest
+  python -m ai_watchlist sectors                    # Sector comparison
+  python -m ai_watchlist prices                     # Fetch price data
+  python -m ai_watchlist data NVDA                  # Additional data sources
 """,
     )
 
@@ -65,6 +70,31 @@ Examples:
         "--format", choices=["json", "csv"], default="json", help="Export format"
     )
     export_parser.add_argument("--output", "-o", default=None, help="Output filename")
+
+    dashboard_parser = subparsers.add_parser("dashboard", help="Launch web dashboard")
+    dashboard_parser.add_argument("--host", default="0.0.0.0", help="Host to bind to")
+    dashboard_parser.add_argument("--port", type=int, default=8000, help="Port to use")
+
+    backtest_parser = subparsers.add_parser("backtest", help="Run backtesting")
+    backtest_parser.add_argument("ticker", help="Ticker to backtest")
+    backtest_parser.add_argument(
+        "--weeks", type=int, default=12, help="Weeks to backtest"
+    )
+    backtest_parser.add_argument(
+        "--capital", type=float, default=100000, help="Initial capital"
+    )
+    backtest_parser.add_argument(
+        "--compare", action="store_true", help="Compare all strategies"
+    )
+
+    sectors_parser = subparsers.add_parser("sectors", help="Sector comparison analysis")
+    sectors_parser.add_argument("--compare", nargs="+", help="Compare specific tickers")
+
+    prices_parser = subparsers.add_parser("prices", help="Fetch price data")
+    prices_parser.add_argument("-t", "--tickers", nargs="+", help="Specific tickers")
+
+    data_parser = subparsers.add_parser("data", help="Additional data sources")
+    data_parser.add_argument("ticker", help="Ticker symbol")
 
     return parser
 
@@ -128,15 +158,18 @@ def run_history(args):
 
 
 def run_list():
+    from ai_watchlist.sectors import SECTOR_MAPPING
+
     print("\nTracked AI Companies")
-    print("=" * 60)
-    print(f"{'Ticker':>8} {'Company Name':<40} {'Primary AI Focus':<30}")
-    print("-" * 60)
+    print("=" * 70)
+    print(f"{'Ticker':>8} {'Company Name':<30} {'Sector':<25}")
+    print("-" * 70)
 
     for company in COMPANIES:
         ticker = company["ticker"]
         name = company["name"]
-        print(f"{ticker:>8} {name:<40}")
+        sector = SECTOR_MAPPING.get(ticker, "Other")
+        print(f"{ticker:>8} {name:<30} {sector:<25}")
 
 
 async def run_export(args):
@@ -202,6 +235,187 @@ def export_csv(scores, filename):
     return path
 
 
+def run_dashboard(args):
+    from ai_watchlist.dashboard import run_dashboard
+
+    print(f"\nStarting AI Watchlist Dashboard...")
+    print(f"Open http://localhost:{args.port} in your browser\n")
+
+    run_dashboard(host=args.host, port=args.port, use_mock=True)
+
+
+async def run_backtest(args):
+    from ai_watchlist.backtest import Backtester, BacktestStrategy
+
+    backtester = Backtester(
+        initial_capital=args.capital, strategy=BacktestStrategy.SIGNAL_FOLLOW
+    )
+
+    print(f"\nRunning backtest for {args.ticker.upper()}...")
+    print(f"Period: {args.weeks} weeks | Initial Capital: ${args.capital:,.0f}")
+    print("=" * 60)
+
+    if args.compare:
+        result = await backtester.compare_strategies(args.ticker.upper(), args.weeks)
+
+        print("\nStrategy Comparison:")
+        print("-" * 60)
+        for strategy, metrics in result["strategy_comparison"].items():
+            print(f"\n{strategy}:")
+            print(f"  Return: {metrics['return_pct']:.2f}%")
+            print(f"  Win Rate: {metrics['win_rate']:.1%}")
+            print(f"  Sharpe: {metrics['sharpe']:.2f}")
+            print(f"  Max Drawdown: {metrics['max_drawdown']:.2f}%")
+
+        print(f"\nBest Strategy: {result['best_strategy']}")
+    else:
+        result = await backtester.run_backtest(args.ticker.upper(), args.weeks)
+
+        print(f"\nResults:")
+        print(f"  Final Capital: ${result['final_capital']:,.2f}")
+        print(f"  Total Return: {result['total_return_pct']:.2f}%")
+        print(f"  Benchmark Return: {result['benchmark_return_pct']:.2f}%")
+        print(f"  Alpha: {result['alpha']:.2f}%")
+        print(f"\nTrade Statistics:")
+        print(f"  Total Trades: {result['total_trades']}")
+        print(
+            f"  Winning: {result['winning_trades']} | Losing: {result['losing_trades']}"
+        )
+        print(f"  Win Rate: {result['win_rate']:.1%}")
+        print(
+            f"  Avg Win: {result['avg_win_pct']:.2f}% | Avg Loss: {result['avg_loss_pct']:.2f}%"
+        )
+        print(f"\nRisk Metrics:")
+        print(f"  Max Drawdown: {result['max_drawdown']:.2f}%")
+        print(f"  Sharpe Ratio: {result['sharpe_ratio']:.2f}")
+
+
+async def run_sectors(args):
+    from ai_watchlist.sectors import SectorAnalyzer
+
+    analyzer = SectorAnalyzer(use_mock=True)
+
+    if args.compare:
+        result = await analyzer.compare_companies(args.compare)
+
+        print("\nCompany Comparison")
+        print("=" * 70)
+
+        for company in result["companies"]:
+            print(f"\n{company['ticker']} - {company['name']}")
+            print(f"  Score: {company['score']:.3f} | Signal: {company['signal']}")
+
+        if result["winner"]:
+            w = result["winner"]
+            print(
+                f"\nWinner: {w['ticker']} (Score: {w['score']}, Signal: {w['signal']})"
+            )
+    else:
+        result = await analyzer.analyze_sectors()
+
+        print("\nSector Analysis")
+        print("=" * 70)
+        print(f"Generated: {result['generated_at']}")
+
+        print("\nSector Rankings (by avg score):")
+        print("-" * 70)
+        for sector in result["rankings"]["by_sector_score"]:
+            data = result["sectors"][sector]
+            print(f"\n{sector}:")
+            print(f"  Avg Score: {data['avg_score']:.3f}")
+            print(f"  Signal: {data['avg_signal']}")
+            print(f"  Companies: {data['company_count']}")
+            print(
+                f"  Top: {data['top_performer']} | Bottom: {data['bottom_performer']}"
+            )
+
+        print("\n" + "=" * 70)
+        print("Sector Rotation Signal:")
+        rotation = result["sector_rotation"]
+        print(f"  Recommendation: {rotation['recommendation']}")
+        print(f"  Reasoning: {rotation['reasoning']}")
+
+        print("\nTop Picks:")
+        for pick in result["top_picks"]:
+            print(f"  {pick['ticker']} ({pick['sector']}): {pick['reason']}")
+
+
+async def run_prices(args):
+    from ai_watchlist.indicators.prices import PriceIntegrator
+    from ai_watchlist.config import COMPANIES
+
+    integrator = PriceIntegrator(use_cache=True)
+
+    tickers = args.tickers if args.tickers else [c["ticker"] for c in COMPANIES]
+
+    print(f"\nFetching prices for {len(tickers)} companies...")
+    print("=" * 90)
+    print(
+        f"{'Ticker':>8} {'Price':>10} {'Day%':>8} {'Week%':>8} {'Month%':>8} {'>50MA':>6} {'>200MA':>6}"
+    )
+    print("-" * 90)
+
+    for ticker in tickers:
+        price = await integrator.fetch_price(ticker)
+        print(
+            f"{price.ticker:>8} "
+            f"${price.current_price:>8.2f} "
+            f"{price.day_change_pct:>7.2f}% "
+            f"{price.week_change_pct:>7.2f}% "
+            f"{price.month_change_pct:>7.2f}% "
+            f"{'✓' if price.above_50dma else '✗':>6} "
+            f"{'✓' if price.above_200dma else '✗':>6}"
+        )
+
+
+async def run_data(args):
+    from ai_watchlist.indicators.data_sources import DataIntegrator
+    from ai_watchlist.config import COMPANIES
+
+    ticker = args.ticker.upper()
+    company = next((c for c in COMPANIES if c["ticker"] == ticker), None)
+
+    if not company:
+        print(f"Company {ticker} not found")
+        return
+
+    integrator = DataIntegrator(use_mock=True)
+
+    print(f"\nFetching additional data for {ticker}...")
+    print("=" * 70)
+
+    data = await integrator.fetch_all(ticker, company["name"])
+
+    print(f"\nNews ({data['news']['article_count']} articles)")
+    print(f"  Sentiment Score: {data['news']['sentiment_score']:.3f}")
+    for article in data["news"]["articles"][:3]:
+        print(f"  - [{article['source']}] {article['title'][:50]}...")
+
+    print(f"\nEarnings")
+    if data["earnings"]["quarter"]:
+        print(f"  Quarter: {data['earnings']['quarter']}")
+        print(f"  Surprise: {data['earnings']['surprise_pct']:.2f}%")
+        print(f"  AI Mentions in Call: {data['earnings']['ai_mentions']}")
+    else:
+        print("  No recent earnings data")
+
+    print(f"\nSocial Sentiment")
+    print(f"  Aggregate: {data['social']['aggregate_sentiment']:.3f}")
+    for platform in data["social"]["platforms"]:
+        print(
+            f"  - {platform['name']}: {platform['mentions']} mentions, sentiment {platform['sentiment']:.2f}"
+        )
+
+    print(f"\nPatents")
+    print(f"  AI Patents (4wk): {data['patents']['ai_patents']}")
+    print(f"  Innovation Score: {data['patents']['innovation_score']:.2f}")
+
+    print(f"\nAnalyst Ratings")
+    print(f"  Consensus: {data['analysts']['consensus']}")
+    print(f"  Avg Target: ${data['analysts']['avg_target']:.2f}")
+    print(f"  Buy Ratio: {data['analysts']['buy_ratio']:.0%}")
+
+
 async def main():
     parser = create_parser()
     args = parser.parse_args()
@@ -220,6 +434,16 @@ async def main():
         run_list()
     elif args.command == "export":
         await run_export(args)
+    elif args.command == "dashboard":
+        run_dashboard(args)
+    elif args.command == "backtest":
+        await run_backtest(args)
+    elif args.command == "sectors":
+        await run_sectors(args)
+    elif args.command == "prices":
+        await run_prices(args)
+    elif args.command == "data":
+        await run_data(args)
 
 
 if __name__ == "__main__":

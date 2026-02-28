@@ -8,6 +8,15 @@ from .github import GitHubIndicator
 from .executives import ExecutiveIndicator
 from .sentiment import EmployeeSentimentIndicator
 from .contracts import GovernmentContractsIndicator
+from .prices import PriceIntegrator, PriceData
+from .data_sources import (
+    DataIntegrator,
+    NewsIntegrator,
+    EarningsIntegrator,
+    SocialSentimentIntegrator,
+    PatentIntegrator,
+    AnalystIntegrator,
+)
 
 __all__ = [
     "SECFilingsIndicator",
@@ -16,4 +25,12 @@ __all__ = [
     "ExecutiveIndicator",
     "EmployeeSentimentIndicator",
     "GovernmentContractsIndicator",
+    "PriceIntegrator",
+    "PriceData",
+    "DataIntegrator",
+    "NewsIntegrator",
+    "EarningsIntegrator",
+    "SocialSentimentIntegrator",
+    "PatentIntegrator",
+    "AnalystIntegrator",
 ]
